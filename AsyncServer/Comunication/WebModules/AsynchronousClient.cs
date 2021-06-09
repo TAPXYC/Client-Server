@@ -102,6 +102,29 @@ public class AsynchronousClient
 
 
 
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="serverPort">Прослушиваемый порт</param>
+    /// <param name="otherMachineName">IP удаленной машины</param>
+    /// <param name="timeToCancel">Время до отмены отправки сообщения в секундах</param>
+    public AsynchronousClient(int serverPort, IPAddress otherMachineIP, float timeToCancel)
+    {
+        findRemoteIP = true;
+
+        _port = serverPort;
+        _timeToCancel = timeToCancel;
+
+        //Запоминаем IP получателя (куда отправляем)
+        remotePointInfo.RemoteIP = otherMachineIP;
+
+        removeIP = new IPEndPoint(otherMachineIP, _port);
+    }
+
+
+
+
+
 
 
     /// <summary>

@@ -52,6 +52,7 @@
     <Compile Include="Comunication\DataClasses\RemotePointInfo.cs" />
     <Compile Include="Comunication\DataClasses\StateObject.cs" />
     <Compile Include="Comunication\WebModules\Helpers\WebInfo.cs" />
+    <Compile Include="ScanSystem\ScanWeb.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

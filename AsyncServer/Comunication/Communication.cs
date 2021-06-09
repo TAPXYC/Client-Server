@@ -1,6 +1,5 @@
 ﻿using System;
-
-
+using System.Net;
 
 /// <summary>
 /// Класс для обмена сообщений между двумя машинами
@@ -40,47 +39,6 @@ class Communication
         Port = port;
         _timeToCancelMessage = timeToCancelMessage;
     }
-
-
-
-
-    #region Client control
-
-    /// <summary>
-    /// Отправка сообщения заданной машине
-    /// </summary>
-    /// <param name="message"></param>
-    /// <param name="otherMachineName"></param>
-    public void SendMessage(string message, string otherMachineName)
-    {
-        AsynchronousClient client = new AsynchronousClient(Port, otherMachineName, _timeToCancelMessage);
-        client.OnSendTimeout += Client_OnSendTimeout;
-        client.OnRecieveAnswer += Client_OnRecieveAnswer;
-        client.OnNameNotFound += Client_OnNameNotFound;
-        client.StartClient(message);
-    }
-
-    #region обработчики событий клиента
-
-    private void Client_OnNameNotFound(string remoteMachineName)
-    {
-        OnClientNameNotFound?.Invoke(remoteMachineName);
-    }
-
-    private void Client_OnSendTimeout(RemotePointInfo remotePointInfo)
-    {
-        OnClientTimeout?.Invoke(remotePointInfo);
-    }
-
-
-    private void Client_OnRecieveAnswer(RemotePointInfo remotePointInfo, string answer)
-    {
-        OnClientRecieveAnswer?.Invoke(remotePointInfo, answer);
-    }
-
-    #endregion
-
-    #endregion
 
 
 
@@ -135,6 +93,71 @@ class Communication
         asynchronousServer.StopServer();
     }
 
+
+    #endregion
+
+
+
+
+    #region Client control
+
+    /// <summary>
+    /// Отправка сообщения заданной машине
+    /// </summary>
+    /// <param name="message">Сообщение</param>
+    /// <param name="otherMachineName">Имя удаленной машины</param>
+    public void SendMessage(string message, string otherMachineName)
+    {
+        AsynchronousClient client = new AsynchronousClient(Port, otherMachineName, _timeToCancelMessage);
+        InitClientEvents(client);
+        client.StartClient(message);
+    }
+
+
+
+    /// <summary>
+    /// Отправка сообщения заданной машине
+    /// </summary>
+    /// <param name="message">Сообщение</param>
+    /// <param name="otherMachineName">IP удаленной машины</param>
+    public void SendMessage(string message, IPAddress otherMachineIP)
+    {
+        AsynchronousClient client = new AsynchronousClient(Port, otherMachineIP, _timeToCancelMessage);
+        InitClientEvents(client);
+        client.StartClient(message);
+    }
+
+
+
+
+
+    private void InitClientEvents(AsynchronousClient client)
+    {
+        client.OnSendTimeout += Client_OnSendTimeout;
+        client.OnRecieveAnswer += Client_OnRecieveAnswer;
+        client.OnNameNotFound += Client_OnNameNotFound;
+    }
+
+
+    #region обработчики событий клиента
+
+    private void Client_OnNameNotFound(string remoteMachineName)
+    {
+        OnClientNameNotFound?.Invoke(remoteMachineName);
+    }
+
+    private void Client_OnSendTimeout(RemotePointInfo remotePointInfo)
+    {
+        OnClientTimeout?.Invoke(remotePointInfo);
+    }
+
+
+    private void Client_OnRecieveAnswer(RemotePointInfo remotePointInfo, string answer)
+    {
+        OnClientRecieveAnswer?.Invoke(remotePointInfo, answer);
+    }
+
+    #endregion
 
     #endregion
 

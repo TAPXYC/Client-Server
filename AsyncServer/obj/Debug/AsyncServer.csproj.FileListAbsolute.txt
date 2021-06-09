@@ -5,3 +5,10 @@ C:\Users\WorkDestructor\source\repos\AsyncServer\AsyncServer\obj\Debug\AsyncServ
 C:\Users\WorkDestructor\source\repos\AsyncServer\AsyncServer\obj\Debug\AsyncServer.csproj.CoreCompileInputs.cache
 C:\Users\WorkDestructor\source\repos\AsyncServer\AsyncServer\obj\Debug\AsyncServer.exe
 C:\Users\WorkDestructor\source\repos\AsyncServer\AsyncServer\obj\Debug\AsyncServer.pdb
+C:\GIT\Client-Server\AsyncServer\bin\Debug\AsyncServer.exe.config
+C:\GIT\Client-Server\AsyncServer\bin\Debug\AsyncServer.exe
+C:\GIT\Client-Server\AsyncServer\bin\Debug\AsyncServer.pdb
+C:\GIT\Client-Server\AsyncServer\obj\Debug\AsyncServer.csprojAssemblyReference.cache
+C:\GIT\Client-Server\AsyncServer\obj\Debug\AsyncServer.csproj.CoreCompileInputs.cache
+C:\GIT\Client-Server\AsyncServer\obj\Debug\AsyncServer.exe
+C:\GIT\Client-Server\AsyncServer\obj\Debug\AsyncServer.pdb
