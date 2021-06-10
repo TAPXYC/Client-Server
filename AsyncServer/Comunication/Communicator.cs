@@ -4,7 +4,7 @@ using System.Net;
 /// <summary>
 /// Класс для обмена сообщений между двумя машинами
 /// </summary>
-class Communication
+class Communicator
 {
     #region события
 
@@ -24,17 +24,15 @@ class Communication
     private int Port;
     private float _timeToCancelMessage;
 
-
-    AsynchronousServer asynchronousServer;
+    private AsynchronousServer asynchronousServer;
 
 
 
     /// <summary>
-    /// 
     /// </summary>
     /// <param name="port">Прослушиваемый порт</param>
     /// <param name="timeToCancelMessage">Время в секундах до отмены отправки сообщения</param>
-    public Communication(int port, float timeToCancelMessage = 2)
+    public Communicator(int port, float timeToCancelMessage = 2)
     {
         Port = port;
         _timeToCancelMessage = timeToCancelMessage;
@@ -52,6 +50,7 @@ class Communication
         if (asynchronousServer == null)
         {
             asynchronousServer = new AsynchronousServer(Port);
+
             asynchronousServer.OnStartServer += Server_OnStartServer;
             asynchronousServer.OnRecieveMessage += Server_OnRecieveMessage;
             asynchronousServer.OnStopServer += Server_OnStopServer;
@@ -59,6 +58,20 @@ class Communication
 
         asynchronousServer.StartListening();
     }
+
+
+
+
+    /// <summary>
+    /// Отключение сервера
+    /// </summary>
+    public void ShutdownServer()
+    {
+        asynchronousServer.StopServer();
+    }
+
+
+
 
 
     #region обработчики событий сервера
@@ -84,16 +97,6 @@ class Communication
 
     #endregion
 
-
-    /// <summary>
-    /// Отключение сервера
-    /// </summary>
-    public void ShutdownServer()
-    {
-        asynchronousServer.StopServer();
-    }
-
-
     #endregion
 
 
@@ -115,6 +118,8 @@ class Communication
 
 
 
+
+
     /// <summary>
     /// Отправка сообщения заданной машине
     /// </summary>
@@ -130,8 +135,25 @@ class Communication
 
 
 
-
+    /// <summary>
+    /// Привязка событий к данному клиенту
+    /// </summary>
+    /// <param name="client"></param>
     private void InitClientEvents(AsynchronousClient client)
+    {
+        client.OnSendTimeout += Client_OnSendTimeout;
+        client.OnRecieveAnswer += Client_OnRecieveAnswer;
+        client.OnNameNotFound += Client_OnNameNotFound;
+    }
+
+
+
+
+    /// <summary>
+    /// Очистка привязок событий к данному клиенту
+    /// </summary>
+    /// <param name="client"></param>
+    private void ClearClientEvents(AsynchronousClient client)
     {
         client.OnSendTimeout += Client_OnSendTimeout;
         client.OnRecieveAnswer += Client_OnRecieveAnswer;
@@ -145,6 +167,7 @@ class Communication
     {
         OnClientNameNotFound?.Invoke(remoteMachineName);
     }
+
 
     private void Client_OnSendTimeout(RemotePointInfo remotePointInfo)
     {

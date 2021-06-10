@@ -12,6 +12,8 @@ using System.Threading.Tasks;
 
 public class AsynchronousClient
 {
+    #region События
+
     /// <summary>
     /// Событие таймаута отправки собщения
     /// </summary>
@@ -29,14 +31,17 @@ public class AsynchronousClient
     /// </summary>
     public event Action<RemotePointInfo, string> OnRecieveAnswer;
 
+    #endregion
+
+
+
+    #region Private
 
     /// <summary>
     /// Информация о конечной точке (туда, куда отправляем сообщение) 
     /// </summary>
-    public RemotePointInfo remotePointInfo = new RemotePointInfo();
+    private RemotePointInfo remotePointInfo = new RemotePointInfo();
 
-
-    #region Private
 
     /// <summary>
     /// Номер порта удаленного устройства.
@@ -61,6 +66,7 @@ public class AsynchronousClient
 
     private Socket client;
     private IPEndPoint removeIP;
+    private System.Timers.Timer timeoutTimer;
 
     private string remoteMachineName;
     private bool findRemoteIP = false;
@@ -71,7 +77,6 @@ public class AsynchronousClient
 
 
     /// <summary>
-    /// 
     /// </summary>
     /// <param name="serverPort">Прослушиваемый порт</param>
     /// <param name="otherMachineName">Имя удаленной машины</param>
@@ -102,11 +107,12 @@ public class AsynchronousClient
 
 
 
+
+
     /// <summary>
-    /// 
     /// </summary>
     /// <param name="serverPort">Прослушиваемый порт</param>
-    /// <param name="otherMachineName">IP удаленной машины</param>
+    /// <param name="otherMachineIP">IP удаленной машины</param>
     /// <param name="timeToCancel">Время до отмены отправки сообщения в секундах</param>
     public AsynchronousClient(int serverPort, IPAddress otherMachineIP, float timeToCancel)
     {
@@ -133,18 +139,19 @@ public class AsynchronousClient
     /// <param name="message">Сообщение для отправки</param>
     public void StartClient(string message)
     {
+        //Если искали по имени и не нашли - вызываем событие, говорящее, что данного имени нет
         if (!findRemoteIP)
         {
             OnNameNotFound?.Invoke(remoteMachineName);
+            ClearClient();
             return;
         }
 
         // Подключение к удаленному устройству.
-        try
+        Task.Run(() =>
         {
-            Task.Run(() =>
+            try
             {
-                // Создание TCP/IP socket.  
                 client = new Socket(remotePointInfo.RemoteIP.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
 
                 //Запуск таймера, по истечении которого сообщение будет отклонено
@@ -154,44 +161,60 @@ public class AsynchronousClient
                 client.BeginConnect(removeIP, ConnectCallback, client);
                 connectDone.WaitOne();
 
-                //Если не получилось установить соединение - 
+                //Если получилось установить соединение - продолжаем
                 if (_hasConnect)
                 {
-                    // Отправьте тестовые данные на удаленное устройство.
+                    //Останавливаем таймер таймаута
+                    timeoutTimer.Stop();
+
+                    // Отправление текстовые данных на удаленное устройство.
                     AsyncSocketAction.Send(client, message + "<EOF>", sendDone);
                     sendDone.WaitOne();
 
-                    // Получить ответ от удаленного устройства.
+                    // Получение ответа от удаленного устройства.
                     Receive(client);
                     receiveDone.WaitOne();
 
+                    //Закрыть сокет
                     client.Shutdown(SocketShutdown.Both);
                     client.Close();
                 }
-                else
-                {
-                    OnSendTimeout?.Invoke(remotePointInfo);
-                }
-            });
-
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine(e.ToString());
-        }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.ToString());
+            }
+        });
     }
 
 
+
+
+
+    /// <summary>
+    /// Очистка данных клиента
+    /// </summary>
+    private void ClearClient()
+    {
+        OnNameNotFound = null;
+        OnRecieveAnswer = null;
+        OnSendTimeout = null;
+    }
+
+
+
+
+    #region Таймер таймаута
 
     /// <summary>
     /// Запуск таймера, по истечении которого сообщение будет отклонено
     /// </summary>
     private void StartTimer()
     {
-        System.Timers.Timer timer = new System.Timers.Timer(_timeToCancel * 1000);
-        timer.Elapsed += SendTimeout;
-        timer.AutoReset = false;
-        timer.Start();
+        timeoutTimer = new System.Timers.Timer(_timeToCancel * 1000);
+        timeoutTimer.Elapsed += SendTimeout;
+        timeoutTimer.AutoReset = false;
+        timeoutTimer.Start();
     }
 
 
@@ -203,13 +226,18 @@ public class AsynchronousClient
     {
         client.Close();
 
-        if (!_hasConnect)
-            connectDone.Set();
+        //Если не получилось установить соединение - вызываем событие таймаут
+        OnSendTimeout?.Invoke(remotePointInfo);
+        ClearClient();
+
+        connectDone.Set();
     }
 
+    #endregion
 
 
 
+    #region Соединение с удаленной точкой
 
     /// <summary>
     /// Асинхронное соединение
@@ -232,6 +260,7 @@ public class AsynchronousClient
         }
     }
 
+    #endregion
 
 
 
@@ -281,7 +310,7 @@ public class AsynchronousClient
 
             if (bytesRead > 0)
             {
-                state.StringBuilder.Append(Encoding.UTF8.GetString(state.Buffer, 0, bytesRead));
+                state.MessageStringBuilder.Append(Encoding.UTF8.GetString(state.Buffer, 0, bytesRead));
 
                 // Продолжаем считывать данные
                 client.BeginReceive(state.Buffer, 0, StateObject.BufferSize, 0, new AsyncCallback(ReceiveCallback), state);
@@ -289,9 +318,10 @@ public class AsynchronousClient
             else
             {
                 // Все данные поступили; помещаем их в ответ.
-                if (state.StringBuilder.Length > 1)
+                if (state.MessageStringBuilder.Length > 1)
                 {
-                    OnRecieveAnswer?.Invoke(remotePointInfo, state.StringBuilder.ToString());
+                    OnRecieveAnswer?.Invoke(remotePointInfo, state.MessageStringBuilder.ToString());
+                    ClearClient();
                 }
                 // Возобновляем главный поток
                 receiveDone.Set();

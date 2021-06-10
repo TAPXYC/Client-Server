@@ -9,7 +9,7 @@ class Programm
 
         int ServerPort = 11000;
 
-        Communication communication = new Communication(ServerPort, 3);
+        Communicator communication = new Communicator(ServerPort, 3);
         //communication.CreateServer();
 
         //communication.OnClientNameNotFound += i => Console.WriteLine($"[{i}]\tне в сети");

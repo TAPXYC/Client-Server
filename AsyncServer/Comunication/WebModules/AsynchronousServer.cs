@@ -7,6 +7,8 @@ using System.Threading.Tasks;
 
 class AsynchronousServer
 {
+    #region События
+
     /// <summary>
     /// Событие запуска сервера
     /// </summary>
@@ -22,16 +24,23 @@ class AsynchronousServer
     /// </summary>
     public event Action<Exception> OnStopServer;
 
+    #endregion
+
+
+    #region Private
 
     /// <summary>
     /// Сигнал потоков 
     /// </summary>
     ManualResetEvent AcceptConnection = new ManualResetEvent(false);
 
-    private IPEndPoint LocalEndPoint;
     private Socket Listener;
 
     private bool _isActive;
+
+    #endregion
+
+
 
 
 
@@ -39,7 +48,7 @@ class AsynchronousServer
     {
         //Создаем локальную точку доступа
         IPAddress ipAddress = WebInfo.GetIP();
-        LocalEndPoint = new IPEndPoint(ipAddress, port);
+        IPEndPoint LocalEndPoint = new IPEndPoint(ipAddress, port);
 
         // Создаем TCP/IP сокет  
         Listener = new Socket(ipAddress.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
@@ -101,7 +110,7 @@ class AsynchronousServer
         _isActive = false;
         AcceptConnection.Set();
 
-        Listener.Shutdown( SocketShutdown.Both);
+        Listener.Shutdown(SocketShutdown.Both);
         Listener.Close();
     }
 
@@ -120,8 +129,6 @@ class AsynchronousServer
 
         // Получаем через асинхронный результат сокет прослушки и сокет для работы с клиентом
         Socket listener = (Socket)ar.AsyncState;
-
-        //Console.WriteLine(listener.RemoteEndPoint.ToString());
 
         Socket handler = listener.EndAccept(ar);
 
@@ -144,7 +151,7 @@ class AsynchronousServer
     /// <param name="ar">Состояние асинхронной операции</param>
     private void ReadCallback(IAsyncResult ar)
     {
-        String content = String.Empty;
+        String incomingMessage = String.Empty;
 
         // Снова получаем клиента из объекта состояний 
         StateObject state = (StateObject)ar.AsyncState;
@@ -156,23 +163,20 @@ class AsynchronousServer
         if (bytesRead > 0)
         {
             // Сохраняем все данные в стрингбилдер 
-            state.StringBuilder.Append(Encoding.UTF8.GetString(state.Buffer, 0, bytesRead));
+            state.MessageStringBuilder.Append(Encoding.UTF8.GetString(state.Buffer, 0, bytesRead));
 
             // Проверяем, закончилось ли сообщение
-            content = state.StringBuilder.ToString();
+            incomingMessage = state.MessageStringBuilder.ToString();
 
             //Если есть слово окончания, то прекращаем прием данных и отправляем ответ
-            if (content.IndexOf("<EOF>") > -1)
+            if (incomingMessage.IndexOf("<EOF>") > -1)
             {
                 var RemotePointInfo = new RemotePointInfo();
                 RemotePointInfo.RemoteIP = (handler.RemoteEndPoint as IPEndPoint).Address;
 
-                OnRecieveMessage?.Invoke(RemotePointInfo, content);
+                OnRecieveMessage?.Invoke(RemotePointInfo, incomingMessage);
 
-                // Отправляем ответ клиенту 
-                string Answer = "Ok";
-
-                AsyncSocketAction.Send(handler, Answer, needCloseHandler: true);
+                SendAnswer(handler, incomingMessage);
             }
             else
             {
@@ -184,5 +188,25 @@ class AsynchronousServer
         {
             Console.WriteLine("ПОСТАВЬТЕ КТО-НИБУДЬ СИМВОЛ ОКОНЧАНИЯ ЭТОМУ КЛИЕНТУ!");
         }
+    }
+
+
+
+
+    /// <summary>
+    /// Формирование ответа в зависимости от входящего сообщения
+    /// </summary>
+    /// <param name="handler">Удаленный сокет</param>
+    /// <param name="incomingMessage">Входящее сообщение</param>
+    private void SendAnswer(Socket handler, string incomingMessage)
+    {
+        Command command = CommandParser.ParceMessage(incomingMessage);
+
+        string Answer = command.Answer;
+
+        // Отправляем ответ клиенту 
+        AsyncSocketAction.Send(handler, Answer, needCloseHandler: true);
+
+        command.Execute();
     }
 }

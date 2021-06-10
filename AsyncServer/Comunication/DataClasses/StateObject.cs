@@ -19,7 +19,7 @@ public class StateObject
     /// <summary>
     /// Структура для считывания
     /// </summary>
-    public StringBuilder StringBuilder = new StringBuilder();
+    public StringBuilder MessageStringBuilder = new StringBuilder();
 
 
     /// <summary>

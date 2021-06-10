@@ -43,9 +43,11 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Comunication\Command\Command.cs" />
+    <Compile Include="Comunication\Command\CommandParser.cs" />
     <Compile Include="Comunication\WebModules\Helpers\AsyncSocketAction.cs" />
     <Compile Include="Comunication\WebModules\AsynchronousClient.cs" />
-    <Compile Include="Comunication\Communication.cs" />
+    <Compile Include="Comunication\Communicator.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Comunication\WebModules\AsynchronousServer.cs" />

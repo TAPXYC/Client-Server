@@ -45,7 +45,7 @@ class ScanWeb
     private ManualResetEvent scanComplete = new ManualResetEvent(false);
 
 
-    public async Task<List<Device>> ScanByIP(IPAddress start, IPAddress end, Communication communication)
+    public async Task<List<Device>> ScanByIP(IPAddress start, IPAddress end, Communicator communication)
     {
         currentScan = 0;
         totalCount = WebInfo.MaskToInt(end);
